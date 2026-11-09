@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sahas</title>
+  <link rel="preconnect" href="https://campaignlark.com">
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=space-grotesk:300,600" rel="stylesheet">
+  <style>
+    body  { background:#ffffff; color:#000000; margin:40px; }
+    @media (prefers-color-scheme: dark) { body { background:#0d0d0d; color:#f2f2f2; } }
+    h1    { font-family:'Space Grotesk',sans-serif; font-weight:600; }
+    p     { font-family:'Space Grotesk',sans-serif; font-weight:300; line-height:1.6; }
+    p.note{ font-family:'Space Grotesk',sans-serif; font-weight:200; line-height:1.5; font-size:0.875em; }
+  </style>
+</head>
+<body>
+
+  <h1>Hey, I'm Sahas.</h1>
+
+  <p>
+    I'll add a portfolio here someday...<br>
+    If you really really want to see it, send a message over to <span id="contact"></span>.<br>
+    (written like that so bots don't eat my inbox)
+  </p>
+
+  <p>Till the time, sign up to our newsletter!</p>
+
+  <p class="note">For a small surprise, make sure to check out the Console! (no, there's no console game yet but i may or may not add it in the future...)</p>
+  <p class="note">For people who see my code, I'm very sorry - I'm coding in the default vi editor in my terminal until i make a real site...</p>
+
+  <div id="campaignlark-form"></div>
+
+  <script src="https://campaignlark.com/form.js" defer onload="CampaignLark.render('a80dcc57e617849f')"></script>
+
+  <script>
+    const contact = 'sahas {at} shimpi {dot} dev';
+    document.getElementById('contact').textContent = contact;
+
+    const art = `░██     ░██            ░██ ░██            ░██
+░██     ░██            ░██ ░██            ░██
+░██     ░██  ░███████  ░██ ░██  ░███████  ░██
+░██████████ ░██    ░██ ░██ ░██ ░██    ░██ ░██
+░██     ░██ ░█████████ ░██ ░██ ░██    ░██ ░██
+░██     ░██ ░██        ░██ ░██ ░██    ░██
+░██     ░██  ░███████  ░██ ░██  ░███████  ░██`;
+    const msg   = `Hey techie! Send a message over at ${contact}... i kinda need some motivation`;
+    const style = 'color:#00aaff;font-family:monospace;font-size:14px;font-weight:bold;';
+    console.log(`%c${art}`, style);
+    console.log(`%c${msg}`, style);
+    console.log('%cHELLO', style);
+  </script>
+
+  <script>
+    (function () {
+      function injectDarkMode() {
+        var host = document.getElementById('campaignlark-form');
+        if (!host || !host.shadowRoot) return setTimeout(injectDarkMode, 200);
+        var root = host.shadowRoot;
+        if (!root.querySelector('.campaignlark-form-container')) return setTimeout(injectDarkMode, 200);
+        if (root.getElementById('cl-dark')) return;
+        var s = document.createElement('style');
+        s.id = 'cl-dark';
+        s.textContent = `
+          :host,
+          .campaignlark-form-container,
+          .campaignlark-form-container input,
+          .campaignlark-form-container select,
+          .campaignlark-form-container textarea,
+          .campaignlark-form-container button,
+          .campaignlark-form-container label,
+          .campaignlark-form-container p,
+          .campaignlark-form-container h2 {
+            font-family: 'Space Grotesk', sans-serif !important;
+          }
+
+          /* ── Grayscale inputs + button (overrides any colour set in CampaignLark dashboard) ── */
+          .campaignlark-form-container input,
+          .campaignlark-form-container select,
+          .campaignlark-form-container textarea {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border-color: #cccccc !important;
+          }
+          .campaignlark-form-container input::placeholder,
+          .campaignlark-form-container textarea::placeholder {
+            color: #999999 !important;
+          }
+          .campaignlark-form-container button[type="submit"] {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border-color: #000000 !important;
+          }
+
+          @media (prefers-color-scheme: dark) {
+            .campaignlark-form-container {
+              background-color: #0d0d0d !important;
+              color: #f2f2f2 !important;
+            }
+            .campaignlark-form-container h2,
+            .campaignlark-form-container p,
+            .campaignlark-form-container label,
+            .campaignlark-form-container small {
+              color: #f2f2f2 !important;
+            }
+            .campaignlark-form-container input,
+            .campaignlark-form-container select,
+            .campaignlark-form-container textarea {
+              background-color: #1a1a1a !important;
+              color: #f2f2f2 !important;
+              border-color: #444444 !important;
+            }
+            .campaignlark-form-container input::placeholder,
+            .campaignlark-form-container textarea::placeholder {
+              color: #888888 !important;
+            }
+            .campaignlark-form-container select option {
+              background-color: #1a1a1a;
+              color: #f2f2f2;
+            }
+            .campaignlark-form-container button[type="submit"] {
+              background-color: #f2f2f2 !important;
+              color: #0d0d0d !important;
+              border-color: #f2f2f2 !important;
+            }
+          }
+        `;
+        root.appendChild(s);
+      }
+      setTimeout(injectDarkMode, 200);
+    })();
+  </script>
+
+</body>
+</html>
