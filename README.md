@@ -35,14 +35,18 @@ delivers to never appears in the page markup. Server variables, loaded by the sy
 from files outside every release:
 
 ```
-/etc/portfolio-mail.env   LETTERMINT_PROJECT_TOKEN=lm_...   # written by the deploy workflow
-                          # from the LETTERMINT_PROJECT_TOKEN repository secret
-/etc/portfolio.env        CONTACT_TO=sahas@shimpi.dev       # where messages land
-                          CONTACT_FROM=Portfolio <contact@shimpi.dev>
+/etc/portfolio-mail.env   LETTERMINT_PROJECT_TOKEN=lm_...              # written by the deploy workflow
+                          CONTACT_TO=sahas.shimpi@outlook.com       # from the CONTACT_TO secret
+                          MAIL_FROM=Portfolio <contact@send.shimpi.dev>   # from the MAIL_FROM secret
+/etc/portfolio.env        SITE_ORIGIN=https://www.shimpi.dev
 ```
 
+Without a token the form still renders but `POST /api/contact` answers
+`503 {"ok":false,"error":"not_configured"}`. The endpoint also drops honeypot submissions and
+rate-limits each IP to five messages an hour.
+
 The sender has to sit on a domain verified in the Lettermint project (`onboarding@lettermint.dev`
-works out of the box for a test send; `shimpi.dev` needs its DNS records published in
+works out of the box for a test send; `send.shimpi.dev` needs its DNS records published in
 Lettermint first).
 
 ## Newsletter
@@ -52,10 +56,8 @@ in `/var/lib/portfolio/subscribers.db` (SQLite via `node:sqlite`, outside every 
 mails a confirmation link built from `SITE_ORIGIN`. `/api/confirm?token=…` marks the address
 confirmed and redirects back to the page; `/api/unsubscribe?token=…` takes it off again.
 Only confirmed, non-unsubscribed rows count as subscribers, and an address already on the
-list gets the same answer as a new one so the form never leaks who is subscribed. Without a token the
-form still renders but `POST /api/contact` answers
-`503 {"ok":false,"error":"not_configured"}`. The endpoint also drops honeypot
-submissions and rate-limits each IP to five messages an hour.
+list gets the same answer as a new one so the form never leaks who is subscribed, and the
+confirmation mail carries its own unsubscribe link.
 
 ## Deployment
 

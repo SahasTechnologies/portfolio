@@ -52,6 +52,8 @@ jobs:
           SSH_USER: ${{ secrets.NEST_USER }}
           SSH_PORT: ${{ secrets.NEST_PORT }}
           MAIL_TOKEN: ${{ secrets.LETTERMINT_PROJECT_TOKEN }}
+          MAIL_TO: ${{ secrets.CONTACT_TO }}
+          MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM }}
         run: |
           set -uo pipefail
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
@@ -76,10 +78,12 @@ jobs:
             exit 1
           fi
 
-          # The Lettermint token comes from repository secrets and lands in its own env
-          # file, so rotating it happens here. Nothing about it is echoed.
+          # Mail settings come from repository secrets and land in their own env file,
+          # so rotating the token or changing the addresses happens here. Values are
+          # never echoed.
           if [ -n "${MAIL_TOKEN:-}" ]; then
-            printf 'LETTERMINT_PROJECT_TOKEN=%s\n' "$MAIL_TOKEN" | ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "umask 077; cat > /etc/portfolio-mail.env" || true
+            printf 'LETTERMINT_PROJECT_TOKEN=%s\nCONTACT_TO=%s\nMAIL_FROM=%s\n' "$MAIL_TOKEN" "${MAIL_TO:-}" "${MAIL_FROM_ADDRESS:-}" \
+              | ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "umask 077; cat > /etc/portfolio-mail.env" || true
             mail="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "test -s /etc/portfolio-mail.env && echo MAIL_OK" 2>&1 || true)"
             echo "mail credentials: ${mail:-not installed}"
             grep -q MAIL_OK <<<"$mail" || { echo "::error::could not install the mail token on nest"; exit 1; }
