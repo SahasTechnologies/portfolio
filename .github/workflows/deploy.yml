@@ -51,6 +51,7 @@ jobs:
           DIRECT_HOST: ${{ secrets.NEST_DIRECT_HOST }}
           SSH_USER: ${{ secrets.NEST_USER }}
           SSH_PORT: ${{ secrets.NEST_PORT }}
+          MAIL_TOKEN: ${{ secrets.LETTERMINT_PROJECT_TOKEN }}
         run: |
           set -uo pipefail
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
@@ -73,6 +74,17 @@ jobs:
           else
             echo "::error::could not reach nest over any transport"
             exit 1
+          fi
+
+          # The Lettermint token comes from repository secrets and lands in its own env
+          # file, so rotating it happens here. Nothing about it is echoed.
+          if [ -n "${MAIL_TOKEN:-}" ]; then
+            printf 'LETTERMINT_PROJECT_TOKEN=%s\n' "$MAIL_TOKEN" | ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "umask 077; cat > /etc/portfolio-mail.env" || true
+            mail="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "test -s /etc/portfolio-mail.env && echo MAIL_OK" 2>&1 || true)"
+            echo "mail credentials: ${mail:-not installed}"
+            grep -q MAIL_OK <<<"$mail" || { echo "::error::could not install the mail token on nest"; exit 1; }
+          else
+            echo "::warning::LETTERMINT_PROJECT_TOKEN is not set; the contact form will answer not_configured"
           fi
 
           # The proxy drops sessions without an exit status, so ssh can report 255

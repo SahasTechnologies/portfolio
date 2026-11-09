@@ -29,17 +29,20 @@ Requires Node 26 (the release on nest runs `/usr/local/bin/node`).
 
 ## Contact form
 
-`src/pages/api/contact.ts` posts the form through the Resend API, so the address it
-delivers to never appears in the page markup. It needs three variables on the server, kept in
-`/etc/portfolio.env` (loaded by the systemd unit) rather than in a release:
+`src/pages/api/contact.ts` posts the form to Lettermint's sending API
+(`POST https://api.lettermint.co/v1/send`, `x-lettermint-token` header), so the address it
+delivers to never appears in the page markup. Server variables, loaded by the systemd unit
+from files outside every release:
 
 ```
-RESEND_API_KEY=re_...                       # from resend.com, sender domain verified there
-CONTACT_TO=sahas@shimpi.dev                 # where messages land
-CONTACT_FROM=Portfolio <contact@shimpi.dev> # must be on the verified domain
+/etc/portfolio-mail.env   LETTERMINT_PROJECT_TOKEN=lm_...   # written by the deploy workflow
+                          # from the LETTERMINT_PROJECT_TOKEN repository secret
+/etc/portfolio.env        CONTACT_TO=sahas@shimpi.dev       # where messages land
+                          CONTACT_FROM=Portfolio <contact@shimpi.dev>
 ```
 
-Without `RESEND_API_KEY` the form still renders but `POST /api/contact` answers
+The sender has to sit on a domain verified in the Lettermint project. Without a token the
+form still renders but `POST /api/contact` answers
 `503 {"ok":false,"error":"not_configured"}`. The endpoint also drops honeypot
 submissions and rate-limits each IP to five messages an hour.
 

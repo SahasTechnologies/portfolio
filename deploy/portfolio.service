@@ -8,9 +8,10 @@ WorkingDirectory=/var/www/portfolio
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=4321
-# Secrets (RESEND_API_KEY, CONTACT_TO, CONTACT_FROM) live outside the releases so
-# they survive every deploy.
+# Secrets live outside the releases so they survive every deploy. The mail token
+# is written by the deploy workflow; the recipient/sender stay hand-managed.
 EnvironmentFile=-/etc/portfolio.env
+EnvironmentFile=-/etc/portfolio-mail.env
 ExecStart=/usr/local/bin/node /var/www/portfolio/dist/server/entry.mjs
 Restart=always
 RestartSec=2

@@ -23,7 +23,7 @@ const json = (body: unknown, status = 200) =>
   });
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
-  const apiKey = process.env.RESEND_API_KEY;
+  const token = process.env.LETTERMINT_PROJECT_TOKEN;
   const to = process.env.CONTACT_TO ?? 'sahas@shimpi.dev';
   const from = process.env.CONTACT_FROM ?? 'Portfolio <contact@shimpi.dev>';
 
@@ -54,27 +54,28 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (tooMany(clientAddress ?? 'unknown')) {
     return json({ ok: false, error: 'Too many messages just now — try again later.' }, 429);
   }
-  if (!apiKey) {
+  if (!token) {
     return json({ ok: false, error: 'not_configured' }, 503);
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.lettermint.co/v1/send', {
     method: 'POST',
     headers: {
-      authorization: `Bearer ${apiKey}`,
+      'x-lettermint-token': token,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
       from,
       to: [to],
-      reply_to: email,
+      reply_to: [email],
       subject: `Portfolio message from ${name}`,
       text: `${message}\n\n— ${name} <${email}>`,
+      tag: 'portfolio-contact',
     }),
   });
 
   if (!res.ok) {
-    console.error('contact: email API rejected the message', res.status, await res.text());
+    console.error('contact: Lettermint rejected the message', res.status, await res.text());
     return json({ ok: false, error: 'The mail service refused it — try again later.' }, 502);
   }
 
