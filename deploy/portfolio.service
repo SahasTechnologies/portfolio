@@ -6,6 +6,8 @@ After=network.target
 Type=simple
 WorkingDirectory=/var/www/portfolio
 Environment=NODE_ENV=production
+# The box's IPv6 route to Cloudflare is unreliable, so try IPv4 addresses first.
+Environment=NODE_OPTIONS=--dns-result-order=ipv4first
 Environment=HOST=127.0.0.1
 Environment=PORT=4321
 # Secrets live outside the releases so they survive every deploy. The mail token

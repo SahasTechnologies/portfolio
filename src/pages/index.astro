@@ -37,8 +37,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
     <section class="content">
       <p>
         Well, I kinda need a good idea for the site so if you have any ideas, or just anything at
-        all please contact me below or at <span class="mailto" data-mail>sahbasb shimpib debv</span>
-        (written that way so that the spam bots don't add my email to some list)
+        all please contact me below or at <span class="mailto" data-mail>sahbasb shimpib debv</span>.
       </p>
 
       <form class="contact" method="post" action="/api/contact" data-contact>
@@ -255,6 +254,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
         if (field) field.style.flex = `0 0 ${field.getBoundingClientRect().width}px`;
         button.style.width = `${button.getBoundingClientRect().width}px`;
         button.dataset.state = 'loading';
+        button.disabled = true;
         statusEl.textContent = '';
 
         const payload = Object.fromEntries(new FormData(form));
@@ -267,6 +267,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
           const body = await res.json().catch(() => ({}));
           if (res.ok && body.ok) {
             button.dataset.state = 'done';
+            button.disabled = false;
             form.reset();
             setTimeout(() => reset(form), 600);
             return;
@@ -276,6 +277,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
         } catch (error) {
           button.dataset.state = '';
           button.style.width = '';
+          button.disabled = false;
           if (field) field.style.flex = '';
           statusEl.textContent = error.message;
           reset(form);
