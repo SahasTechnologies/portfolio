@@ -16,6 +16,15 @@ HEALTH=http://127.0.0.1:4321/
 
 PREV="$(readlink -f "$LINK" || true)"
 
+rollback() {
+  echo "rolling back to ${PREV:-nothing}" >&2
+  if [ -n "${PREV:-}" ] && [ -d "$PREV" ]; then
+    ln -sfn "$PREV" "$LINK.new"
+    mv -Tf "$LINK.new" "$LINK"
+    systemctl restart "$SERVICE" || true
+  fi
+}
+
 mkdir -p "$RELEASES"
 rm -rf "$DIR"
 mkdir -p "$DIR"
@@ -25,15 +34,14 @@ rm -f "$ART"
 # Swap the symlink, then restart so node picks up the new code.
 ln -sfn "$DIR" "$LINK.new"
 mv -Tf "$LINK.new" "$LINK"
-systemctl restart "$SERVICE"
+if ! systemctl restart "$SERVICE"; then
+  rollback
+  exit 1
+fi
 
 if ! curl -fsS --max-time 10 --retry 5 --retry-delay 1 "$HEALTH" >/dev/null; then
-  echo "health check failed; rolling back to ${PREV:-nothing}" >&2
-  if [ -n "${PREV:-}" ] && [ -d "$PREV" ]; then
-    ln -sfn "$PREV" "$LINK.new"
-    mv -Tf "$LINK.new" "$LINK"
-    systemctl restart "$SERVICE"
-  fi
+  echo "health check failed" >&2
+  rollback
   exit 1
 fi
 
