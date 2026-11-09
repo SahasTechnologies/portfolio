@@ -54,12 +54,16 @@ jobs:
         run: |
           set -euo pipefail
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
-          OPTS="-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
-          SSH="ssh -i ~/.ssh/nest -p ${SSH_PORT:-22} $OPTS"
-          SCP="scp -i ~/.ssh/nest -P ${SSH_PORT:-22} $OPTS"
+          PORT="${SSH_PORT:-22}"
           TARGET="$SSH_USER@$SSH_HOST"
+          SSHOPTS=(-i "$HOME/.ssh/nest" -p "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
+          SCPOPTS=(-i "$HOME/.ssh/nest" -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 
-          $SSH "$TARGET" "mkdir -p /var/deployments/portfolio/incoming"
-          $SCP release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz"
-          $SCP deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh"
-          $SSH "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME"
+          echo "::group::ssh connectivity"
+          ssh -vv "${SSHOPTS[@]}" "$TARGET" "echo ssh-ok" 2>&1 | tail -25
+          echo "::endgroup::"
+
+          ssh "${SSHOPTS[@]}" "$TARGET" "mkdir -p /var/deployments/portfolio/incoming"
+          scp "${SCPOPTS[@]}" release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz"
+          scp "${SCPOPTS[@]}" deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh"
+          ssh "${SSHOPTS[@]}" "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME"
