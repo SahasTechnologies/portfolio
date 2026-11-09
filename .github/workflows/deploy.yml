@@ -109,13 +109,27 @@ jobs:
           # The proxy drops sessions without an exit status, so ssh can report 255
           # even when the remote command worked. Verify results instead.
           ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "mkdir -p /var/deployments/portfolio/incoming" || true
-          scp -i "$KEY" "${OPTS[@]}" -P "$PORT" release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz" || true
-          scp -i "$KEY" "${OPTS[@]}" -P "$PORT" deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh" || true
 
-          uploaded="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "test -s /var/deployments/portfolio/incoming/$NAME.tgz && test -s /var/deployments/portfolio/deploy.sh && echo UPLOAD_OK" 2>&1 || true)"
-          echo "$uploaded"
+          # The proxy drops long transfers, so retry until the remote copy matches
+          # the tarball we built instead of failing the release on one bad session.
+          SIZE="$(wc -c < release.tgz)"
+          uploaded=""
+          for attempt in 1 2 3; do
+            scp -i "$KEY" "${OPTS[@]}" -P "$PORT" release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz" || true
+            scp -i "$KEY" "${OPTS[@]}" -P "$PORT" deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh" || true
+            uploaded="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "test \"\$(wc -c < /var/deployments/portfolio/incoming/$NAME.tgz)\" = $SIZE && test -s /var/deployments/portfolio/deploy.sh && echo UPLOAD_OK" 2>&1 || true)"
+            echo "upload attempt $attempt: ${uploaded:-no answer}"
+            grep -q UPLOAD_OK <<<"$uploaded" && break
+            sleep 10
+          done
           grep -q UPLOAD_OK <<<"$uploaded" || { echo "::error::release upload did not land on the server"; exit 1; }
 
-          deployed="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME" 2>&1 || true)"
-          echo "$deployed"
+          deployed=""
+          for attempt in 1 2 3; do
+            deployed="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME" 2>&1 || true)"
+            echo "$deployed" | tail -8
+            grep -q "DEPLOY_OK $NAME" <<<"$deployed" && break
+            echo "deploy attempt $attempt did not report success"
+            sleep 10
+          done
           grep -q "DEPLOY_OK $NAME" <<<"$deployed" || { echo "::error::the deploy script did not report success"; exit 1; }
