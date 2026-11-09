@@ -54,6 +54,7 @@ jobs:
           MAIL_TOKEN: ${{ secrets.LETTERMINT_PROJECT_TOKEN }}
           MAIL_TO: ${{ secrets.CONTACT_TO }}
           MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM }}
+          CAMPAIGNLARK_KEY: ${{ secrets.CAMPAIGNLARK_API_KEY }}
         run: |
           set -uo pipefail
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
@@ -78,11 +79,11 @@ jobs:
             exit 1
           fi
 
-          # Mail settings come from repository secrets and land in their own env file,
-          # so rotating the token or changing the addresses happens here. Values are
-          # never echoed.
+          # Mail and newsletter settings come from repository secrets and land in
+          # their own env file, so rotating a key or changing the addresses happens
+          # here. Values are never echoed.
           if [ -n "${MAIL_TOKEN:-}" ]; then
-            printf 'LETTERMINT_PROJECT_TOKEN=%s\nCONTACT_TO=%s\nMAIL_FROM=%s\n' "$MAIL_TOKEN" "${MAIL_TO:-}" "${MAIL_FROM_ADDRESS:-}" \
+            printf 'LETTERMINT_PROJECT_TOKEN=%s\nCONTACT_TO=%s\nMAIL_FROM=%s\nCAMPAIGNLARK_API_KEY=%s\n' "$MAIL_TOKEN" "${MAIL_TO:-}" "${MAIL_FROM_ADDRESS:-}" "${CAMPAIGNLARK_KEY:-}" \
               | ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "umask 077; cat > /etc/portfolio-mail.env" || true
             mail="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "test -s /etc/portfolio-mail.env && echo MAIL_OK" 2>&1 || true)"
             echo "mail credentials: ${mail:-not installed}"

@@ -1,11 +1,9 @@
 import type { APIRoute } from 'astro';
-import { randomBytes } from 'node:crypto';
-import { EMAIL_RE, json, limiter, mailFrom, sendMail, siteOrigin } from '../../lib/mail';
-import { beginVerification } from '../../lib/store';
+import { EMAIL_RE, json, limiter } from '../../lib/mail';
+import { subscribeContact } from '../../lib/campaignlark';
 
-// Newsletter signup: store the address as pending and mail a confirmation link,
-// so nobody can put someone else on the list. Nothing counts as subscribed until
-// that link is opened.
+// Newsletter signup: the address is forwarded to CampaignLark as unconfirmed,
+// so the list, its double opt-in mail and its unsubscribes all stay there.
 export const prerender = false;
 
 const tooMany = limiter(5);
@@ -30,36 +28,6 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ ok: false, error: 'Too many signups just now — try again later.' }, 429);
   }
 
-  const token = randomBytes(24).toString('hex');
-
-  // An address already on the list gets the same answer, so the form never
-  // reveals who is subscribed.
-  if (beginVerification(email, token) === 'already') return json({ ok: true });
-
-  const origin = siteOrigin(request);
-  const confirmUrl = `${origin}/api/confirm?token=${token}`;
-  const unsubscribeUrl = `${origin}/api/unsubscribe?token=${token}`;
-
-  const result = await sendMail({
-    from: mailFrom('Portfolio <contact@shimpi.dev>'),
-    to: email,
-    subject: 'Confirm your subscription',
-    text: [
-      'Someone — hopefully you — asked to be on the list at shimpi.dev.',
-      '',
-      `Confirm here: ${confirmUrl}`,
-      '',
-      'Nothing is stored until you confirm. If this was not you, ignore this mail.',
-      `Unsubscribe: ${unsubscribeUrl}`,
-    ].join('\n'),
-    html: [
-      '<p>Someone — hopefully you — asked to be on the list at shimpi.dev.</p>',
-      `<p><a href="${confirmUrl}">Confirm your subscription</a></p>`,
-      '<p>Nothing is stored until you confirm. If this was not you, ignore this mail.</p>',
-      `<p><a href="${unsubscribeUrl}">Unsubscribe</a></p>`,
-    ].join('\n'),
-    tag: 'newsletter-confirm',
-  });
-
+  const result = await subscribeContact(email);
   return result.ok ? json({ ok: true }) : json({ ok: false, error: result.error }, result.status);
 };

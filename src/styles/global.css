@@ -87,6 +87,12 @@ a {
   width: min(100%, 720px);
 }
 
+.tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+}
+
 /* The animation slot: the pixel studies are wide, so let the SVG fill it. */
 .anim {
   display: block;

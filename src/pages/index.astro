@@ -17,7 +17,6 @@ Astro.cookies.set('anim', pick.id, {
 });
 
 const Animation = pick.Component;
-const newsletter = Astro.url.searchParams.get('newsletter');
 ---
 <Base animation={pick.id}>
   <main>
@@ -29,12 +28,14 @@ const newsletter = Astro.url.searchParams.get('newsletter');
           <span aria-hidden="true"><Animation /></span>
         </span>
       </h1>
+      <p class="tagline">The full site is coming — reload for a different animation!</p>
     </header>
 
     <section class="content">
       <p>
-        I'll add a portfolio here someday...<br />
-        If you really really want to see it, send a message with the form below.
+        Well, I kinda need a good idea for the site so if you have any ideas, or just anything at
+        all please contact me below or at sahas {at} shimpi {dot} dev (written that way so that the
+        spam bots don't add my email to some list)
       </p>
 
       <form class="contact" method="post" action="/api/contact" data-contact>
@@ -79,10 +80,7 @@ const newsletter = Astro.url.searchParams.get('newsletter');
             <input id="n-website" name="website" type="text" tabindex="-1" autocomplete="off" />
           </div>
           <button type="submit">Subscribe</button>
-          <p class="form-status" data-subscribe-status role="status" aria-live="polite">
-            {newsletter === 'confirmed' && 'Confirmed — thanks for subscribing.'}
-            {newsletter === 'unsubscribed' && "You're off the list."}
-          </p>
+          <p class="form-status" data-subscribe-status role="status" aria-live="polite"></p>
         </form>
       </div>
 
@@ -142,7 +140,7 @@ const newsletter = Astro.url.searchParams.get('newsletter');
           const body = await res.json().catch(() => ({}));
           if (res.ok && body.ok) {
             subscribe.reset();
-            status.textContent = 'Check your inbox for a confirmation link.';
+            status.textContent = 'Check your inbox — CampaignLark sent a link to confirm.';
           } else if (body.error === 'not_configured') {
             status.textContent = 'The newsletter is not set up yet.';
           } else {

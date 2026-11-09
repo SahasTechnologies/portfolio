@@ -24,6 +24,20 @@
     els.forEach((r) => (r.style.animation = ''));
   }
 
+  // The one way a study brings pixels back after they vanish: the same scale-in
+  // the entrance uses, so nothing ever snaps into place. `backwards` holds the
+  // first keyframe during a stagger, so waiting pixels never show up early.
+  function respawn(el, delay = 0) {
+    el.animate(
+      [
+        { transform: 'scale(0)', opacity: 0 },
+        { transform: 'scale(1.25)', opacity: 1, offset: 0.6 },
+        { transform: 'none', opacity: 1 },
+      ],
+      { duration: 450, delay: delay, easing: 'ease-out', fill: 'backwards' }
+    );
+  }
+
   const boot = {
     // Hover a row to fill it, then the full line clears and the stack drops.
     tet() {
@@ -424,7 +438,6 @@
       }
       function killGhost() {
         P.dying = true;
-        pgi.classList.remove('born');
         pgi.classList.add('dead');
         clearInterval(P.iv);
         setTimeout(function () {
@@ -474,7 +487,7 @@
         P.ghost = false;
         P.dying = false;
         pg.style.opacity = 0;
-        pgi.classList.remove('born', 'dead');
+        pgi.classList.remove('dead');
         pac.classList.remove('rest');
         pcm.classList.remove('hunt');
         const t0 = performance.now();
@@ -517,7 +530,7 @@
           pg.style.opacity = 1;
           gplace(c, true);
           pgi.classList.remove('dead');
-          pgi.classList.add('born');
+          respawn(pgi);
           pac.classList.remove('rest');
           clearInterval(P.iv);
           P.iv = setInterval(chase, 110);
@@ -698,17 +711,8 @@
         a.onfinish = function () {
           setTimeout(function () {
             a.cancel();
-            const b = r.animate(
-              [
-                { transform: 'scale(0)', opacity: 0 },
-                { transform: 'scale(1.25)', opacity: 1, offset: 0.6 },
-                { transform: 'none', opacity: 1 },
-              ],
-              { duration: 450 }
-            );
-            b.onfinish = function () {
-              delete r.dataset.b;
-            };
+            respawn(r);
+            delete r.dataset.b;
           }, 700);
         };
       }
@@ -814,7 +818,14 @@
         });
         skick();
         clearTimeout(stm);
-        stm = setTimeout(szero, 1700);
+        // Once the pile has scattered it pours back in with the shared respawn
+        // instead of snapping into place.
+        stm = setTimeout(function () {
+          szero();
+          sgs.forEach(function (r) {
+            respawn(r, +r.dataset.x * 6);
+          });
+        }, 1700);
       });
     },
   };

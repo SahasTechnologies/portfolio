@@ -38,6 +38,7 @@ from files outside every release:
 /etc/portfolio-mail.env   LETTERMINT_PROJECT_TOKEN=lm_...              # written by the deploy workflow
                           CONTACT_TO=sahas.shimpi@outlook.com       # from the CONTACT_TO secret
                           MAIL_FROM=Portfolio <contact@send.shimpi.dev>   # from the MAIL_FROM secret
+                          CAMPAIGNLARK_API_KEY=...                  # from the CAMPAIGNLARK_API_KEY secret
 /etc/portfolio.env        SITE_ORIGIN=https://www.shimpi.dev
 ```
 
@@ -51,13 +52,12 @@ Lettermint first).
 
 ## Newsletter
 
-The signup form on the page posts to `/api/subscribe`, which stores the address as *pending*
-in `/var/lib/portfolio/subscribers.db` (SQLite via `node:sqlite`, outside every release) and
-mails a confirmation link built from `SITE_ORIGIN`. `/api/confirm?token=…` marks the address
-confirmed and redirects back to the page; `/api/unsubscribe?token=…` takes it off again.
-Only confirmed, non-unsubscribed rows count as subscribers, and an address already on the
-list gets the same answer as a new one so the form never leaks who is subscribed, and the
-confirmation mail carries its own unsubscribe link.
+The signup form on the page posts to `/api/subscribe`, which forwards the address to
+CampaignLark (`POST https://api.campaignlark.com/v1/contacts`, `Bearer` workspace key) with
+status `UNCONFIRMED`. That is CampaignLark's double opt-in path: they mail the confirmation
+link and only promote the contact once it is opened, and they own the list, the unsubscribes
+and the bounce handling. Nothing is stored on nest, and an address already on the list gets
+the same answer as a new one so the form never leaks who is subscribed.
 
 ## Deployment
 
