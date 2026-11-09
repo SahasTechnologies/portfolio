@@ -1,5 +1,7 @@
 // Newsletter signups go to CampaignLark, which owns the list and the double
 // opt-in mail. The workspace key stays on the server and never reaches the page.
+import './net';
+
 const ENDPOINT = 'https://api.campaignlark.com/v1/contacts';
 
 export type SubscribeResult = { ok: true } | { ok: false; status: number; error: string };

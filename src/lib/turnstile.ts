@@ -1,5 +1,7 @@
 // Server-side Turnstile check. A widget token is single-use and is redeemed here,
 // so the browser only ever holds a short-lived token, never the secret.
+import './net';
+
 const ENDPOINT = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const ATTEMPTS = 3;
 

@@ -1,5 +1,7 @@
 // Server-side mail through Lettermint's sending API. The project token is read
 // from the environment and never reaches the browser.
+import './net';
+
 const ENDPOINT = 'https://api.lettermint.co/v1/send';
 
 export type MailOptions = {
