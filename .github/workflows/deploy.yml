@@ -53,13 +53,10 @@ jobs:
           SSH_PORT: ${{ secrets.NEST_PORT }}
         run: |
           set -euo pipefail
-          # temporary diagnostics
-          ssh-keygen -lf ~/.ssh/nest || true
-          getent hosts "$SSH_HOST" || true
-          ssh -vv -i ~/.ssh/nest -p "${SSH_PORT:-22}" -o StrictHostKeyChecking=yes -o BatchMode=yes "$SSH_USER@$SSH_HOST" "echo connected" 2>&1 | tail -30 || true
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
-          SSH="ssh -i ~/.ssh/nest -p ${SSH_PORT:-22} -o StrictHostKeyChecking=yes"
-          SCP="scp -i ~/.ssh/nest -P ${SSH_PORT:-22} -o StrictHostKeyChecking=yes"
+          OPTS="-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          SSH="ssh -i ~/.ssh/nest -p ${SSH_PORT:-22} $OPTS"
+          SCP="scp -i ~/.ssh/nest -P ${SSH_PORT:-22} $OPTS"
           TARGET="$SSH_USER@$SSH_HOST"
 
           $SSH "$TARGET" "mkdir -p /var/deployments/portfolio/incoming"
