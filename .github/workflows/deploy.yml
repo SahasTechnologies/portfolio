@@ -52,18 +52,24 @@ jobs:
           SSH_USER: ${{ secrets.NEST_USER }}
           SSH_PORT: ${{ secrets.NEST_PORT }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
           PORT="${SSH_PORT:-22}"
           TARGET="$SSH_USER@$SSH_HOST"
           SSHOPTS=(-i "$HOME/.ssh/nest" -p "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
           SCPOPTS=(-i "$HOME/.ssh/nest" -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 
-          echo "::group::ssh connectivity"
-          ssh -vv "${SSHOPTS[@]}" "$TARGET" "echo ssh-ok" 2>&1 | tail -25
-          echo "::endgroup::"
+          # The bastion closes the session without an exit status, so ssh reports
+          # 255 even when the remote command worked. Verify the results instead of
+          # trusting the exit code.
+          ssh "${SSHOPTS[@]}" "$TARGET" "mkdir -p /var/deployments/portfolio/incoming" || true
+          scp "${SCPOPTS[@]}" release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz" || true
+          scp "${SCPOPTS[@]}" deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh" || true
 
-          ssh "${SSHOPTS[@]}" "$TARGET" "mkdir -p /var/deployments/portfolio/incoming"
-          scp "${SCPOPTS[@]}" release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz"
-          scp "${SCPOPTS[@]}" deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh"
-          ssh "${SSHOPTS[@]}" "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME"
+          uploaded="$(ssh "${SSHOPTS[@]}" "$TARGET" "test -s /var/deployments/portfolio/incoming/$NAME.tgz && test -s /var/deployments/portfolio/deploy.sh && echo UPLOAD_OK" 2>&1 || true)"
+          echo "$uploaded"
+          grep -q UPLOAD_OK <<<"$uploaded" || { echo "::error::release upload did not land on the server"; exit 1; }
+
+          deployed="$(ssh "${SSHOPTS[@]}" "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME" 2>&1 || true)"
+          echo "$deployed"
+          grep -q "DEPLOY_OK $NAME" <<<"$deployed" || { echo "::error::the deploy script did not report success"; exit 1; }

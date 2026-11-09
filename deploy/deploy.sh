@@ -41,3 +41,4 @@ fi
 ls -1dt "$RELEASES"/*/ 2>/dev/null | tail -n +4 | xargs -r rm -rf
 
 echo "deployed $NAME -> $(readlink -f "$LINK")"
+echo "DEPLOY_OK $NAME"
