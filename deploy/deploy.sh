@@ -39,7 +39,7 @@ if ! systemctl restart "$SERVICE"; then
   exit 1
 fi
 
-if ! curl -fsS --max-time 10 --retry 5 --retry-delay 1 "$HEALTH" >/dev/null; then
+if ! curl -fsS --max-time 10 --retry 15 --retry-delay 1 --retry-connrefused "$HEALTH" >/dev/null; then
   echo "health check failed" >&2
   rollback
   exit 1
