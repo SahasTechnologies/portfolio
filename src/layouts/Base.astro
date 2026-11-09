@@ -19,6 +19,12 @@ const { animation = '' } = Astro.props;
     <title>Sahas</title>
     <meta name="description" content="Hi, I'm Sahas." />
     {animation && <meta name="x-animation" content={animation} />}
+    <!-- Turnstile, rendered explicitly so each form keeps its own widget id. -->
+    <script
+      is:inline
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+      async
+      defer></script>
   </head>
   <body>
     <slot />

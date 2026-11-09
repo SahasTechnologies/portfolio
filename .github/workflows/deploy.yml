@@ -55,6 +55,7 @@ jobs:
           MAIL_TO: ${{ secrets.CONTACT_TO }}
           MAIL_FROM_ADDRESS: ${{ secrets.MAIL_FROM }}
           CAMPAIGNLARK_KEY: ${{ secrets.CAMPAIGNLARK_API_KEY }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           set -uo pipefail
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
@@ -93,9 +94,9 @@ jobs:
           if [ -n "${MAIL_TOKEN:-}" ]; then
             mail=""
             for attempt in 1 2 3; do
-              printf 'LETTERMINT_PROJECT_TOKEN=%s\nCONTACT_TO=%s\nMAIL_FROM=%s\nCAMPAIGNLARK_API_KEY=%s\n' "$MAIL_TOKEN" "${MAIL_TO:-}" "${MAIL_FROM_ADDRESS:-}" "${CAMPAIGNLARK_KEY:-}" \
+              printf 'LETTERMINT_PROJECT_TOKEN=%s\nCONTACT_TO=%s\nMAIL_FROM=%s\nCAMPAIGNLARK_API_KEY=%s\nTURNSTILE_SECRET_KEY=%s\n' "$MAIL_TOKEN" "${MAIL_TO:-}" "${MAIL_FROM_ADDRESS:-}" "${CAMPAIGNLARK_KEY:-}" "${TURNSTILE_SECRET:-}" \
                 | ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "umask 077; cat > /etc/portfolio-mail.env" || true
-              mail="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "grep -q '^CAMPAIGNLARK_API_KEY=.' /etc/portfolio-mail.env && echo MAIL_OK" 2>&1 || true)"
+              mail="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "grep -q '^CAMPAIGNLARK_API_KEY=.' /etc/portfolio-mail.env && grep -q '^TURNSTILE_SECRET_KEY=.' /etc/portfolio-mail.env && echo MAIL_OK" 2>&1 || true)"
               grep -q MAIL_OK <<<"$mail" && break
               echo "mail sync attempt $attempt did not land: ${mail:-no answer}"
               sleep 5

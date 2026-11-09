@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { EMAIL_RE, json, limiter, mailFrom, sendMail } from '../../lib/mail';
+import { verifyTurnstile } from '../../lib/turnstile';
 
 // Contact form endpoint. The address it delivers to never appears in the page
 // HTML — the server sends the message through the mail API instead.
@@ -39,6 +40,11 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (tooMany(clientAddress ?? 'unknown')) {
     return json({ ok: false, error: 'Too many messages just now — try again later.' }, 429);
   }
+
+  // The widget token is redeemed once, right before the message is sent, so an
+  // invalid field never burns it.
+  const human = await verifyTurnstile(payload['cf-turnstile-response'], 'contact', clientAddress);
+  if (!human.ok) return json({ ok: false, error: human.error }, human.status);
 
   const result = await sendMail({
     from,

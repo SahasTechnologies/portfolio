@@ -17,9 +17,12 @@ Astro.cookies.set('anim', pick.id, {
 });
 
 const Animation = pick.Component;
+
+// Public Turnstile key; its secret is checked on the server only.
+const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAAAAF52ej7obxMw90-T';
 ---
 <Base animation={pick.id}>
-  <main>
+  <main data-anim-total={animations.length}>
     <header class="hero">
       <h1 class="hero-title">
         <span class="hello">Hi, I'm</span>
@@ -28,14 +31,14 @@ const Animation = pick.Component;
           <span aria-hidden="true"><Animation /></span>
         </span>
       </h1>
-      <p class="tagline">The full site is coming — reload for a different animation!</p>
+      <p class="tagline">Reload for a different animation!</p>
     </header>
 
     <section class="content">
       <p>
         Well, I kinda need a good idea for the site so if you have any ideas, or just anything at
-        all please contact me below or at sahas &#123;at&#125; shimpi &#123;dot&#125; dev (written that way so
-        that the spam bots don't add my email to some list)
+        all please contact me below or at <span class="mailto" data-mail>sahbasb shimpib debv</span>
+        (written that way so that the spam bots don't add my email to some list)
       </p>
 
       <form class="contact" method="post" action="/api/contact" data-contact>
@@ -55,7 +58,34 @@ const Animation = pick.Component;
           <label for="c-website">Website</label>
           <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off" />
         </div>
-        <button type="submit">Send message</button>
+        <div
+          class="turnstile"
+          data-turnstile
+          data-sitekey={TURNSTILE_SITE_KEY}
+          data-action="contact"></div>
+        <button type="submit" data-cta>
+          <span class="cta-label">Send message</span>
+          <span class="cta-icon" aria-hidden="true">
+            <svg class="spin" viewBox="0 0 24 24" fill="none">
+              <circle
+                cx="12"
+                cy="12"
+                r="9"
+                stroke="currentColor"
+                stroke-width="2.6"
+                stroke-linecap="round"
+                stroke-dasharray="15 42"></circle>
+            </svg>
+            <svg class="tick" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M5 12.6l4.3 4.3L19 7.4"
+                stroke="currentColor"
+                stroke-width="2.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </button>
         <p class="form-status" data-status role="status" aria-live="polite"></p>
       </form>
 
@@ -63,23 +93,52 @@ const Animation = pick.Component;
 
       <div class="newsletter">
         <form class="contact" method="post" action="/api/subscribe" data-subscribe>
-          <div class="field">
-            <label for="n-email">Email</label>
-            <input
-              id="n-email"
-              name="email"
-              type="email"
-              autocomplete="email"
-              placeholder="you@example.com"
-              required
-              maxlength="160"
-            />
+          <div class="nrow">
+            <div class="field">
+              <label for="n-email">Email</label>
+              <input
+                id="n-email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+                required
+                maxlength="160"
+              />
+            </div>
+            <button type="submit" data-cta>
+              <span class="cta-label">Subscribe</span>
+              <span class="cta-icon" aria-hidden="true">
+                <svg class="spin" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    stroke="currentColor"
+                    stroke-width="2.6"
+                    stroke-linecap="round"
+                    stroke-dasharray="15 42"></circle>
+                </svg>
+                <svg class="tick" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M5 12.6l4.3 4.3L19 7.4"
+                    stroke="currentColor"
+                    stroke-width="2.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"></path>
+                </svg>
+              </span>
+            </button>
           </div>
           <div class="honeypot" aria-hidden="true">
             <label for="n-website">Website</label>
             <input id="n-website" name="website" type="text" tabindex="-1" autocomplete="off" />
           </div>
-          <button type="submit">Subscribe</button>
+          <div
+            class="turnstile"
+            data-turnstile
+            data-sitekey={TURNSTILE_SITE_KEY}
+            data-action="subscribe"></div>
           <p class="form-status" data-subscribe-status role="status" aria-live="polite"></p>
         </form>
       </div>
@@ -96,74 +155,154 @@ const Animation = pick.Component;
   </script>
 
   <script is:inline>
-    const form = document.querySelector('[data-contact]');
-    if (form) {
-      const status = form.querySelector('[data-status]');
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        status.textContent = 'Sending…';
+    // The address is scrambled in the HTML so scrapers get junk; it is decoded on
+    // the first real interaction, before most people read past it.
+    (() => {
+      const address = document.querySelector('[data-mail]');
+      if (!address) return;
+      const decode = () => {
+        address.textContent = address.textContent
+          .replaceAll('b', '')
+          .replace(' ', '@')
+          .replaceAll(' ', '.');
+      };
+      const once = () => {
+        decode();
+        ['mouseenter', 'focus', 'click', 'touchstart', 'keydown'].forEach((type) =>
+          document.removeEventListener(type, once, true)
+        );
+      };
+      ['mouseenter', 'focus', 'click', 'touchstart', 'keydown'].forEach((type) =>
+        document.addEventListener(type, once, true)
+      );
+    })();
+
+    // Console: how many of the studies the visitor has seen. Only the count is
+    // stored, never which one it was, so nothing gives the set away.
+    (() => {
+      const total = Number(document.querySelector('main')?.dataset.animTotal || 0);
+      const current = document.querySelector('.anim[data-anim]')?.dataset.anim;
+      let seen = [];
+      try {
+        seen = JSON.parse(localStorage.getItem('anim-seen') || '[]');
+      } catch {
+        seen = [];
+      }
+      if (!Array.isArray(seen)) seen = [];
+      if (current && !seen.includes(current)) {
+        seen.push(current);
+        try {
+          localStorage.setItem('anim-seen', JSON.stringify(seen));
+        } catch {
+          /* private mode: the count just won't persist */
+        }
+      }
+      const count = Math.min(seen.length, total);
+      console.log(
+        `%c${count}/${total} animations seen!`,
+        'color:#00aaff;font-family:monospace;font-size:14px;font-weight:bold;'
+      );
+    })();
+
+    // Turnstile: the widget's token is sent with the payload and redeemed on the
+    // server. Explicit rendering keeps a widget id so each form can reset its own.
+    (() => {
+      const widgets = new Map();
+
+      function paint() {
+        const nodes = Array.from(document.querySelectorAll('[data-turnstile]'));
+        if (!nodes.length) return;
+        if (!window.turnstile) {
+          setTimeout(paint, 150);
+          return;
+        }
+        nodes.forEach((el) => {
+          if (el.dataset.widgetId) return;
+          const id = window.turnstile.render(el, {
+            sitekey: el.dataset.sitekey,
+            action: el.dataset.action,
+            theme: 'dark',
+          });
+          el.dataset.widgetId = String(id);
+          widgets.set(el, String(id));
+        });
+      }
+      paint();
+
+      const reset = (form) => {
+        const el = form.querySelector('[data-turnstile]');
+        const id = el && el.dataset.widgetId;
+        if (id) {
+          try {
+            window.turnstile.reset(id);
+          } catch {
+            /* the widget is gone or still loading */
+          }
+        }
+      };
+
+      async function submit(form, url, statusEl) {
+        const button = form.querySelector('button[type="submit"]');
+        const field = form.querySelector('.nrow .field');
+        const token = form.querySelector('[name="cf-turnstile-response"]')?.value || '';
+        if (!token) {
+          statusEl.textContent = 'Just a moment — still checking that you are human…';
+          return;
+        }
+
+        // Freeze the textbox width so the button shrinking to a dot can't stretch
+        // it, and lock the button's own width so the morph can animate.
+        if (field) field.style.flex = `0 0 ${field.getBoundingClientRect().width}px`;
+        button.style.width = `${button.getBoundingClientRect().width}px`;
+        button.dataset.state = 'loading';
+        statusEl.textContent = '';
+
         const payload = Object.fromEntries(new FormData(form));
         try {
-          const res = await fetch('/api/contact', {
+          const res = await fetch(url, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify(payload),
           });
           const body = await res.json().catch(() => ({}));
           if (res.ok && body.ok) {
+            button.dataset.state = 'done';
             form.reset();
-            status.textContent = 'Thanks — message sent.';
-          } else if (body.error === 'not_configured') {
-            status.textContent = 'The contact form is not set up yet.';
-          } else {
-            status.textContent = body.error || 'Something went wrong — try again?';
+            setTimeout(() => reset(form), 600);
+            return;
           }
+          if (body.error === 'not_configured') throw new Error('This form is not set up yet.');
+          throw new Error(body.error || 'Something went wrong — try again?');
         } catch (error) {
-          status.textContent = 'Could not reach the server — try again?';
+          button.dataset.state = '';
+          button.style.width = '';
+          if (field) field.style.flex = '';
+          statusEl.textContent = error.message;
+          reset(form);
         }
-      });
-    }
+      }
 
-    const subscribe = document.querySelector('[data-subscribe]');
-    if (subscribe) {
-      const status = subscribe.querySelector('[data-subscribe-status]');
-      subscribe.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        status.textContent = 'Sending…';
-        const payload = Object.fromEntries(new FormData(subscribe));
-        try {
-          const res = await fetch('/api/subscribe', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const body = await res.json().catch(() => ({}));
-          if (res.ok && body.ok) {
-            subscribe.reset();
-            status.textContent = 'Check your inbox — CampaignLark sent a link to confirm.';
-          } else if (body.error === 'not_configured') {
-            status.textContent = 'The newsletter is not set up yet.';
-          } else {
-            status.textContent = body.error || 'Something went wrong — try again?';
+      const wire = (selector, url, statusSelector) => {
+        const form = document.querySelector(selector);
+        if (!form) return;
+        const statusEl = form.querySelector(statusSelector);
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          submit(form, url, statusEl);
+        });
+        // Editing again turns the finished tick back into a usable button.
+        form.addEventListener('input', () => {
+          const button = form.querySelector('button[type="submit"]');
+          if (button && button.dataset.state === 'done') {
+            button.dataset.state = '';
+            button.style.width = '';
+            statusEl.textContent = '';
           }
-        } catch (error) {
-          status.textContent = 'Could not reach the server — try again?';
-        }
-      });
-    }
+        });
+      };
 
-    const art = `░██     ░██            ░██ ░██            ░██
-░██     ░██            ░██ ░██            ░██
-░██     ░██  ░███████  ░██ ░██  ░███████  ░██
-░██████████ ░██    ░██ ░██ ░██ ░██    ░██ ░██
-░██     ░██ ░█████████ ░██ ░██ ░██    ░██ ░██
-░██     ░██ ░██        ░██ ░██ ░██    ░██
-░██     ░██  ░███████  ░██ ░██  ░███████  ░██`;
-    const msg = 'Hey techie! Use the form on the page to say hi... i kinda need some motivation';
-    const style = 'color:#00aaff;font-family:monospace;font-size:14px;font-weight:bold;';
-    console.log(`%c${art}`, style);
-    console.log(`%c${msg}`, style);
-    console.log('%cHELLO', style);
+      wire('[data-contact]', '/api/contact', '[data-status]');
+      wire('[data-subscribe]', '/api/subscribe', '[data-subscribe-status]');
+    })();
   </script>
-
 </Base>

@@ -39,6 +39,7 @@ from files outside every release:
                           CONTACT_TO=sahas.shimpi@outlook.com       # from the CONTACT_TO secret
                           MAIL_FROM=Portfolio <contact@send.shimpi.dev>   # from the MAIL_FROM secret
                           CAMPAIGNLARK_API_KEY=...                  # from the CAMPAIGNLARK_API_KEY secret
+                          TURNSTILE_SECRET_KEY=...                  # from the TURNSTILE_SECRET_KEY secret
 /etc/portfolio.env        SITE_ORIGIN=https://www.shimpi.dev
 ```
 

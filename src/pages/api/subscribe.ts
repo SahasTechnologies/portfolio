@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { EMAIL_RE, json, limiter } from '../../lib/mail';
 import { subscribeContact } from '../../lib/campaignlark';
+import { verifyTurnstile } from '../../lib/turnstile';
 
 // Newsletter signup: the address is forwarded to CampaignLark as unconfirmed,
 // so the list, its double opt-in mail and its unsubscribes all stay there.
@@ -27,6 +28,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (tooMany(clientAddress ?? 'unknown')) {
     return json({ ok: false, error: 'Too many signups just now — try again later.' }, 429);
   }
+
+  const human = await verifyTurnstile(payload['cf-turnstile-response'], 'subscribe', clientAddress);
+  if (!human.ok) return json({ ok: false, error: human.error }, human.status);
 
   const result = await subscribeContact(email);
   return result.ok ? json({ ok: true }) : json({ ok: false, error: result.error }, result.status);
