@@ -1,0 +1,20 @@
+# Caddy site block for nest: all portfolio domains reverse-proxy to the Astro
+# standalone server, which deploy.sh restarts after each release swap.
+{
+	auto_https off
+}
+
+http://:80 {
+	header {
+		-Server
+		+X-Powered-By "Sahas"
+		defer
+	}
+
+	@shimpi_apex {
+		header X-Forwarded-Host shimpi.dev
+	}
+	redir @shimpi_apex https://www.shimpi.dev{uri} permanent
+
+	reverse_proxy 127.0.0.1:4321
+}

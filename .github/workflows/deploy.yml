@@ -1,0 +1,64 @@
+name: Deploy to nest
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-nest
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Prune dev dependencies
+        run: npm ci --omit=dev --no-audit --no-fund
+
+      - name: Package release
+        run: |
+          mkdir release
+          cp -r dist node_modules package.json release/
+          tar -czf release.tgz -C release .
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.NEST_SSH_KEY }}
+          SSH_HOST: ${{ secrets.NEST_HOST }}
+          SSH_PORT: ${{ secrets.NEST_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/nest
+          chmod 600 ~/.ssh/nest
+          ssh-keyscan -p "${SSH_PORT:-22}" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload and activate release
+        env:
+          SSH_HOST: ${{ secrets.NEST_HOST }}
+          SSH_USER: ${{ secrets.NEST_USER }}
+          SSH_PORT: ${{ secrets.NEST_PORT }}
+        run: |
+          set -euo pipefail
+          NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          SSH="ssh -i ~/.ssh/nest -p ${SSH_PORT:-22} -o StrictHostKeyChecking=yes"
+          SCP="scp -i ~/.ssh/nest -P ${SSH_PORT:-22} -o StrictHostKeyChecking=yes"
+          TARGET="$SSH_USER@$SSH_HOST"
+
+          $SSH "$TARGET" "mkdir -p /var/deployments/portfolio/incoming"
+          $SCP release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz"
+          $SCP deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh"
+          $SSH "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME"

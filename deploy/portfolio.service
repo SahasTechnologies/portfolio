@@ -1,0 +1,16 @@
+[Unit]
+Description=Sahas portfolio (Astro SSR)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/portfolio
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=4321
+ExecStart=/usr/bin/node /var/www/portfolio/dist/server/entry.mjs
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

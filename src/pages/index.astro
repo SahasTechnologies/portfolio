@@ -1,0 +1,76 @@
+---
+import Base from '../layouts/Base.astro';
+import { animations } from '../animations';
+
+// Server-side pick: no client script decides which animation you get, and the
+// response is never cached, so every reload draws a different study.
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+const previous = Astro.cookies.get('anim')?.value;
+const pool = animations.length > 1 ? animations.filter((a) => a.id !== previous) : animations;
+const pick = pool[Math.floor(Math.random() * pool.length)] ?? animations[0];
+
+Astro.cookies.set('anim', pick.id, {
+  path: '/',
+  sameSite: 'lax',
+  maxAge: 60 * 60 * 24 * 365,
+});
+
+const Animation = pick.Component;
+---
+<Base animation={pick.id}>
+  <main>
+    <header class="hero">
+      <h1 class="hero-title">
+        <span class="hello">Hi, I'm</span>
+        <span class="name">
+          <span class="sr-only">Sahas</span>
+          <span aria-hidden="true"><Animation /></span>
+        </span>
+      </h1>
+      <p class="tagline">A portfolio is on its way — until then, say hello.</p>
+    </header>
+
+    <section class="content">
+      <p>
+        I'll add a portfolio here someday. If you really want to see it, send a message over to
+        <strong><span id="contact"></span></strong>
+        (written like that so bots don't eat my inbox).
+      </p>
+
+      <div class="newsletter">
+        <h2>Sign up to the newsletter</h2>
+        <div id="campaignlark-form"></div>
+      </div>
+    </section>
+
+    <p class="footer-note">Reload for a different pixel animation.</p>
+  </main>
+
+  <script>
+    import '../scripts/animations.js';
+  </script>
+
+  <script is:inline>
+    document.getElementById('contact').textContent = 'sahas {at} shimpi {dot} dev';
+
+    const art = `░██     ░██            ░██ ░██            ░██
+░██     ░██            ░██ ░██            ░██
+░██     ░██  ░███████  ░██ ░██  ░███████  ░██
+░██████████ ░██    ░██ ░██ ░██ ░██    ░██ ░██
+░██     ░██ ░█████████ ░██ ░██ ░██    ░██ ░██
+░██     ░██ ░██        ░██ ░██ ░██    ░██
+░██     ░██  ░███████  ░██ ░██  ░███████  ░██`;
+    const msg = `Hey techie! Send a message over at sahas {at} shimpi {dot} dev... i kinda need some motivation`;
+    const style = 'color:#00aaff;font-family:monospace;font-size:14px;font-weight:bold;';
+    console.log(`%c${art}`, style);
+    console.log(`%c${msg}`, style);
+    console.log('%cHELLO', style);
+  </script>
+
+  <script
+    is:inline
+    src="https://campaignlark.com/form.js"
+    defer
+    onload="CampaignLark.render('a80dcc57e617849f')"></script>
+</Base>

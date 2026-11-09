@@ -1,0 +1,156 @@
+/* Base styles for the site. Dark by default: the pixel animations are drawn for
+   a dark canvas, so a single dark theme keeps every animation readable. */
+:root {
+  --bg: #0d0d0d;
+  --fg: #f2f2f2;
+  --muted: #9a9a9a;
+  --rule: #262626;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 9vh, 6rem) 1.25rem 4rem;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- hero ---- */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  min-height: min(62vh, 520px);
+  justify-content: center;
+}
+
+.hero-title {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.35rem, 1.5vh, 0.9rem);
+  font-weight: inherit;
+  width: 100%;
+}
+
+.hero-title .hello {
+  font-size: clamp(1.9rem, 6.5vw, 3.25rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.hero-title .name {
+  display: block;
+  width: min(100%, 720px);
+}
+
+/* The animation slot: the pixel studies are wide, so let the SVG fill it. */
+.anim {
+  display: block;
+  width: 100%;
+  /* Ink colour used by several studies when they don't set --f inline. */
+  --f: #f5f5f5;
+}
+
+.anim svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+}
+
+/* -------------------------------------------------------------- content ---- */
+.content {
+  margin-top: clamp(2rem, 7vh, 3.5rem);
+  border-top: 1px solid var(--rule);
+  padding-top: 1.75rem;
+  display: grid;
+  gap: 1.4rem;
+  font-size: 1rem;
+}
+
+.content p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+.content p strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.newsletter {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.newsletter h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--fg);
+}
+
+.footer-note {
+  margin: 2.5rem 0 0;
+  font-size: 0.8rem;
+  color: #6f6f6f;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim * {
+    animation: none !important;
+  }
+}
