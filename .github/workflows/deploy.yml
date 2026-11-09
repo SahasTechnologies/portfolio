@@ -17,7 +17,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 26
           cache: npm
 
       - name: Install dependencies
@@ -37,39 +37,54 @@ jobs:
 
       - name: Configure SSH
         env:
-          SSH_KEY: ${{ secrets.NEST_SSH_KEY }}
-          SSH_HOST: ${{ secrets.NEST_HOST }}
-          SSH_PORT: ${{ secrets.NEST_PORT }}
+          BASTION_KEY: ${{ secrets.NEST_SSH_KEY }}
+          DIRECT_KEY: ${{ secrets.NEST_DEPLOY_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/nest
-          chmod 600 ~/.ssh/nest
-          ssh-keyscan -p "${SSH_PORT:-22}" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          printf '%s\n' "$BASTION_KEY" > ~/.ssh/nest
+          printf '%s\n' "$DIRECT_KEY" > ~/.ssh/nest_direct
+          chmod 600 ~/.ssh/nest ~/.ssh/nest_direct
 
       - name: Upload and activate release
         env:
-          SSH_HOST: ${{ secrets.NEST_HOST }}
+          BASTION_HOST: ${{ secrets.NEST_HOST }}
+          DIRECT_HOST: ${{ secrets.NEST_DIRECT_HOST }}
           SSH_USER: ${{ secrets.NEST_USER }}
           SSH_PORT: ${{ secrets.NEST_PORT }}
         run: |
           set -uo pipefail
           NAME="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
           PORT="${SSH_PORT:-22}"
-          TARGET="$SSH_USER@$SSH_HOST"
-          SSHOPTS=(-i "$HOME/.ssh/nest" -p "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
-          SCPOPTS=(-i "$HOME/.ssh/nest" -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
+          OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -o LogLevel=ERROR)
 
-          # The bastion closes the session without an exit status, so ssh reports
-          # 255 even when the remote command worked. Verify the results instead of
-          # trusting the exit code.
-          ssh "${SSHOPTS[@]}" "$TARGET" "mkdir -p /var/deployments/portfolio/incoming" || true
-          scp "${SCPOPTS[@]}" release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz" || true
-          scp "${SCPOPTS[@]}" deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh" || true
+          # Prefer the box's own address: it runs OpenSSH 10, so the session gets
+          # ML-KEM post-quantum key exchange. The hackclub SSH proxy only offers
+          # curve25519, so it stays as a fallback for networks without IPv6.
+          TARGET=""
+          KEY=""
+          if [ -n "${DIRECT_HOST:-}" ] && ssh -i "$HOME/.ssh/nest_direct" "${OPTS[@]}" -p "$PORT" "root@$DIRECT_HOST" true 2>/dev/null; then
+            TARGET="root@$DIRECT_HOST"
+            KEY="$HOME/.ssh/nest_direct"
+            echo "transport: direct (post-quantum key exchange)"
+          elif ssh -i "$HOME/.ssh/nest" "${OPTS[@]}" -p "$PORT" "$SSH_USER@$BASTION_HOST" true 2>/dev/null; then
+            TARGET="$SSH_USER@$BASTION_HOST"
+            KEY="$HOME/.ssh/nest"
+            echo "transport: hackclub proxy (no post-quantum key exchange)"
+          else
+            echo "::error::could not reach nest over any transport"
+            exit 1
+          fi
 
-          uploaded="$(ssh "${SSHOPTS[@]}" "$TARGET" "test -s /var/deployments/portfolio/incoming/$NAME.tgz && test -s /var/deployments/portfolio/deploy.sh && echo UPLOAD_OK" 2>&1 || true)"
+          # The proxy drops sessions without an exit status, so ssh can report 255
+          # even when the remote command worked. Verify results instead.
+          ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "mkdir -p /var/deployments/portfolio/incoming" || true
+          scp -i "$KEY" "${OPTS[@]}" -P "$PORT" release.tgz "$TARGET:/var/deployments/portfolio/incoming/$NAME.tgz" || true
+          scp -i "$KEY" "${OPTS[@]}" -P "$PORT" deploy/deploy.sh "$TARGET:/var/deployments/portfolio/deploy.sh" || true
+
+          uploaded="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "test -s /var/deployments/portfolio/incoming/$NAME.tgz && test -s /var/deployments/portfolio/deploy.sh && echo UPLOAD_OK" 2>&1 || true)"
           echo "$uploaded"
           grep -q UPLOAD_OK <<<"$uploaded" || { echo "::error::release upload did not land on the server"; exit 1; }
 
-          deployed="$(ssh "${SSHOPTS[@]}" "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME" 2>&1 || true)"
+          deployed="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "bash /var/deployments/portfolio/deploy.sh $NAME" 2>&1 || true)"
           echo "$deployed"
           grep -q "DEPLOY_OK $NAME" <<<"$deployed" || { echo "::error::the deploy script did not report success"; exit 1; }

@@ -28,23 +28,46 @@ const Animation = pick.Component;
           <span aria-hidden="true"><Animation /></span>
         </span>
       </h1>
-      <p class="tagline">A portfolio is on its way — until then, say hello.</p>
     </header>
 
     <section class="content">
       <p>
-        I'll add a portfolio here someday. If you really want to see it, send a message over to
-        <strong><span id="contact"></span></strong>
-        (written like that so bots don't eat my inbox).
+        I'll add a portfolio here someday...<br />
+        If you really really want to see it, send a message with the form below.
       </p>
 
+      <form class="contact" method="post" action="/api/contact" data-contact>
+        <div class="field">
+          <label for="c-name">Name</label>
+          <input id="c-name" name="name" type="text" autocomplete="name" required maxlength="80" />
+        </div>
+        <div class="field">
+          <label for="c-email">Email</label>
+          <input id="c-email" name="email" type="email" autocomplete="email" required maxlength="160" />
+        </div>
+        <div class="field">
+          <label for="c-message">Message</label>
+          <textarea id="c-message" name="message" rows="4" required maxlength="4000"></textarea>
+        </div>
+        <div class="honeypot" aria-hidden="true">
+          <label for="c-website">Website</label>
+          <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <button type="submit">Send message</button>
+        <p class="form-status" data-status role="status" aria-live="polite"></p>
+      </form>
+
+      <p>Till the time, sign up to our newsletter!</p>
+
       <div class="newsletter">
-        <h2>Sign up to the newsletter</h2>
         <div id="campaignlark-form"></div>
       </div>
-    </section>
 
-    <p class="footer-note">Reload for a different pixel animation.</p>
+      <p class="note">
+        For a small surprise, make sure to check out the Console! (no, there's no console game yet but i
+        may or may not add it in the future...)
+      </p>
+    </section>
   </main>
 
   <script>
@@ -52,7 +75,33 @@ const Animation = pick.Component;
   </script>
 
   <script is:inline>
-    document.getElementById('contact').textContent = 'sahas {at} shimpi {dot} dev';
+    const form = document.querySelector('[data-contact]');
+    if (form) {
+      const status = form.querySelector('[data-status]');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        status.textContent = 'Sending…';
+        const payload = Object.fromEntries(new FormData(form));
+        try {
+          const res = await fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (res.ok && body.ok) {
+            form.reset();
+            status.textContent = 'Thanks — message sent.';
+          } else if (body.error === 'not_configured') {
+            status.textContent = 'The contact form is not set up yet.';
+          } else {
+            status.textContent = body.error || 'Something went wrong — try again?';
+          }
+        } catch (error) {
+          status.textContent = 'Could not reach the server — try again?';
+        }
+      });
+    }
 
     const art = `░██     ░██            ░██ ░██            ░██
 ░██     ░██            ░██ ░██            ░██
@@ -61,7 +110,7 @@ const Animation = pick.Component;
 ░██     ░██ ░█████████ ░██ ░██ ░██    ░██ ░██
 ░██     ░██ ░██        ░██ ░██ ░██    ░██
 ░██     ░██  ░███████  ░██ ░██  ░███████  ░██`;
-    const msg = `Hey techie! Send a message over at sahas {at} shimpi {dot} dev... i kinda need some motivation`;
+    const msg = 'Hey techie! Use the form on the page to say hi... i kinda need some motivation';
     const style = 'color:#00aaff;font-family:monospace;font-size:14px;font-weight:bold;';
     console.log(`%c${art}`, style);
     console.log(`%c${msg}`, style);

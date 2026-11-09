@@ -8,7 +8,10 @@ WorkingDirectory=/var/www/portfolio
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=4321
-ExecStart=/usr/bin/node /var/www/portfolio/dist/server/entry.mjs
+# Secrets (RESEND_API_KEY, CONTACT_TO, CONTACT_FROM) live outside the releases so
+# they survive every deploy.
+EnvironmentFile=-/etc/portfolio.env
+ExecStart=/usr/local/bin/node /var/www/portfolio/dist/server/entry.mjs
 Restart=always
 RestartSec=2
 
