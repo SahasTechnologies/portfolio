@@ -41,7 +41,18 @@ from files outside every release:
                           CONTACT_FROM=Portfolio <contact@shimpi.dev>
 ```
 
-The sender has to sit on a domain verified in the Lettermint project. Without a token the
+The sender has to sit on a domain verified in the Lettermint project (`onboarding@lettermint.dev`
+works out of the box for a test send; `shimpi.dev` needs its DNS records published in
+Lettermint first).
+
+## Newsletter
+
+The signup form on the page posts to `/api/subscribe`, which stores the address as *pending*
+in `/var/lib/portfolio/subscribers.db` (SQLite via `node:sqlite`, outside every release) and
+mails a confirmation link built from `SITE_ORIGIN`. `/api/confirm?token=…` marks the address
+confirmed and redirects back to the page; `/api/unsubscribe?token=…` takes it off again.
+Only confirmed, non-unsubscribed rows count as subscribers, and an address already on the
+list gets the same answer as a new one so the form never leaks who is subscribed. Without a token the
 form still renders but `POST /api/contact` answers
 `503 {"ok":false,"error":"not_configured"}`. The endpoint also drops honeypot
 submissions and rate-limits each IP to five messages an hour.

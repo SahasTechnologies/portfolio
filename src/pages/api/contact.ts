@@ -1,31 +1,16 @@
 import type { APIRoute } from 'astro';
+import { EMAIL_RE, json, limiter, mailFrom, sendMail } from '../../lib/mail';
 
 // Contact form endpoint. The address it delivers to never appears in the page
-// HTML — the server sends the message through the email API instead.
+// HTML — the server sends the message through the mail API instead.
 export const prerender = false;
 
 const LIMIT = { name: 80, email: 160, message: 4000 };
-const RATE = { windowMs: 60 * 60 * 1000, max: 5 };
-const hits = new Map<string, number[]>();
-
-function tooMany(key: string) {
-  const now = Date.now();
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < RATE.windowMs);
-  recent.push(now);
-  hits.set(key, recent);
-  return recent.length > RATE.max;
-}
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
-  });
+const tooMany = limiter(5);
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
-  const token = process.env.LETTERMINT_PROJECT_TOKEN;
   const to = process.env.CONTACT_TO ?? 'sahas@shimpi.dev';
-  const from = process.env.CONTACT_FROM ?? 'Portfolio <contact@shimpi.dev>';
+  const from = mailFrom('Portfolio <contact@shimpi.dev>');
 
   let payload: Record<string, unknown>;
   try {
@@ -48,36 +33,21 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (name.length > LIMIT.name || email.length > LIMIT.email || message.length > LIMIT.message) {
     return json({ ok: false, error: 'That is longer than the form allows.' }, 400);
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!EMAIL_RE.test(email)) {
     return json({ ok: false, error: 'That email address looks off.' }, 400);
   }
   if (tooMany(clientAddress ?? 'unknown')) {
     return json({ ok: false, error: 'Too many messages just now — try again later.' }, 429);
   }
-  if (!token) {
-    return json({ ok: false, error: 'not_configured' }, 503);
-  }
 
-  const res = await fetch('https://api.lettermint.co/v1/send', {
-    method: 'POST',
-    headers: {
-      'x-lettermint-token': token,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      reply_to: [email],
-      subject: `Portfolio message from ${name}`,
-      text: `${message}\n\n— ${name} <${email}>`,
-      tag: 'portfolio-contact',
-    }),
+  const result = await sendMail({
+    from,
+    to,
+    replyTo: email,
+    subject: `Portfolio message from ${name}`,
+    text: `${message}\n\n— ${name} <${email}>`,
+    tag: 'portfolio-contact',
   });
 
-  if (!res.ok) {
-    console.error('contact: Lettermint rejected the message', res.status, await res.text());
-    return json({ ok: false, error: 'The mail service refused it — try again later.' }, 502);
-  }
-
-  return json({ ok: true });
+  return result.ok ? json({ ok: true }) : json({ ok: false, error: result.error }, result.status);
 };

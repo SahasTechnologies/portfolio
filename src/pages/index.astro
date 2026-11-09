@@ -17,6 +17,7 @@ Astro.cookies.set('anim', pick.id, {
 });
 
 const Animation = pick.Component;
+const newsletter = Astro.url.searchParams.get('newsletter');
 ---
 <Base animation={pick.id}>
   <main>
@@ -60,7 +61,29 @@ const Animation = pick.Component;
       <p>Till the time, sign up to our newsletter!</p>
 
       <div class="newsletter">
-        <div id="campaignlark-form"></div>
+        <form class="contact" method="post" action="/api/subscribe" data-subscribe>
+          <div class="field">
+            <label for="n-email">Email</label>
+            <input
+              id="n-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+              required
+              maxlength="160"
+            />
+          </div>
+          <div class="honeypot" aria-hidden="true">
+            <label for="n-website">Website</label>
+            <input id="n-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+          <button type="submit">Subscribe</button>
+          <p class="form-status" data-subscribe-status role="status" aria-live="polite">
+            {newsletter === 'confirmed' && 'Confirmed — thanks for subscribing.'}
+            {newsletter === 'unsubscribed' && "You're off the list."}
+          </p>
+        </form>
       </div>
 
       <p class="note">
@@ -103,6 +126,34 @@ const Animation = pick.Component;
       });
     }
 
+    const subscribe = document.querySelector('[data-subscribe]');
+    if (subscribe) {
+      const status = subscribe.querySelector('[data-subscribe-status]');
+      subscribe.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        status.textContent = 'Sending…';
+        const payload = Object.fromEntries(new FormData(subscribe));
+        try {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (res.ok && body.ok) {
+            subscribe.reset();
+            status.textContent = 'Check your inbox for a confirmation link.';
+          } else if (body.error === 'not_configured') {
+            status.textContent = 'The newsletter is not set up yet.';
+          } else {
+            status.textContent = body.error || 'Something went wrong — try again?';
+          }
+        } catch (error) {
+          status.textContent = 'Could not reach the server — try again?';
+        }
+      });
+    }
+
     const art = `░██     ░██            ░██ ░██            ░██
 ░██     ░██            ░██ ░██            ░██
 ░██     ░██  ░███████  ░██ ░██  ░███████  ░██
@@ -117,9 +168,4 @@ const Animation = pick.Component;
     console.log('%cHELLO', style);
   </script>
 
-  <script
-    is:inline
-    src="https://campaignlark.com/form.js"
-    defer
-    onload="CampaignLark.render('a80dcc57e617849f')"></script>
 </Base>
