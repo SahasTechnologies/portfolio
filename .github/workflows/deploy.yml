@@ -66,15 +66,23 @@ jobs:
           # curve25519, so it stays as a fallback for networks without IPv6.
           TARGET=""
           KEY=""
-          if [ -n "${DIRECT_HOST:-}" ] && ssh -i "$HOME/.ssh/nest_direct" "${OPTS[@]}" -p "$PORT" "root@$DIRECT_HOST" true 2>/dev/null; then
-            TARGET="root@$DIRECT_HOST"
-            KEY="$HOME/.ssh/nest_direct"
-            echo "transport: direct (post-quantum key exchange)"
-          elif ssh -i "$HOME/.ssh/nest" "${OPTS[@]}" -p "$PORT" "$SSH_USER@$BASTION_HOST" true 2>/dev/null; then
-            TARGET="$SSH_USER@$BASTION_HOST"
-            KEY="$HOME/.ssh/nest"
-            echo "transport: hackclub proxy (no post-quantum key exchange)"
-          else
+          for attempt in 1 2 3; do
+            if [ -n "${DIRECT_HOST:-}" ] && ssh -i "$HOME/.ssh/nest_direct" "${OPTS[@]}" -p "$PORT" "root@$DIRECT_HOST" true 2>/dev/null; then
+              TARGET="root@$DIRECT_HOST"
+              KEY="$HOME/.ssh/nest_direct"
+              echo "transport: direct (post-quantum key exchange)"
+              break
+            fi
+            if ssh -i "$HOME/.ssh/nest" "${OPTS[@]}" -p "$PORT" "$SSH_USER@$BASTION_HOST" true 2>/dev/null; then
+              TARGET="$SSH_USER@$BASTION_HOST"
+              KEY="$HOME/.ssh/nest"
+              echo "transport: hackclub proxy (no post-quantum key exchange)"
+              break
+            fi
+            echo "attempt $attempt: nest unreachable, retrying"
+            sleep 15
+          done
+          if [ -z "$TARGET" ]; then
             echo "::error::could not reach nest over any transport"
             exit 1
           fi
@@ -83,11 +91,17 @@ jobs:
           # their own env file, so rotating a key or changing the addresses happens
           # here. Values are never echoed.
           if [ -n "${MAIL_TOKEN:-}" ]; then
-            printf 'LETTERMINT_PROJECT_TOKEN=%s\nCONTACT_TO=%s\nMAIL_FROM=%s\nCAMPAIGNLARK_API_KEY=%s\n' "$MAIL_TOKEN" "${MAIL_TO:-}" "${MAIL_FROM_ADDRESS:-}" "${CAMPAIGNLARK_KEY:-}" \
-              | ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "umask 077; cat > /etc/portfolio-mail.env" || true
-            mail="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "test -s /etc/portfolio-mail.env && echo MAIL_OK" 2>&1 || true)"
+            mail=""
+            for attempt in 1 2 3; do
+              printf 'LETTERMINT_PROJECT_TOKEN=%s\nCONTACT_TO=%s\nMAIL_FROM=%s\nCAMPAIGNLARK_API_KEY=%s\n' "$MAIL_TOKEN" "${MAIL_TO:-}" "${MAIL_FROM_ADDRESS:-}" "${CAMPAIGNLARK_KEY:-}" \
+                | ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "umask 077; cat > /etc/portfolio-mail.env" || true
+              mail="$(ssh -i "$KEY" "${OPTS[@]}" -p "$PORT" "$TARGET" "grep -q '^CAMPAIGNLARK_API_KEY=.' /etc/portfolio-mail.env && echo MAIL_OK" 2>&1 || true)"
+              grep -q MAIL_OK <<<"$mail" && break
+              echo "mail sync attempt $attempt did not land: ${mail:-no answer}"
+              sleep 5
+            done
             echo "mail credentials: ${mail:-not installed}"
-            grep -q MAIL_OK <<<"$mail" || { echo "::error::could not install the mail token on nest"; exit 1; }
+            grep -q MAIL_OK <<<"$mail" || { echo "::error::could not install the mail credentials on nest"; exit 1; }
           else
             echo "::warning::LETTERMINT_PROJECT_TOKEN is not set; the contact form will answer not_configured"
           fi
