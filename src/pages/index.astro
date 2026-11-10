@@ -240,6 +240,41 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
         }
       };
 
+      // The pill shrinks to a dot (and grows back) by animating an explicit pixel
+      // width, because `width: auto` can't be transitioned. An inline width also
+      // outranks the stylesheet, so the dot's width has to be set inline too:
+      // previously the button kept its pill width and only its radius changed,
+      // which drew a wide green ellipse with the spinner and the tick on top of
+      // each other.
+      const morph = (button, state) => {
+        if (!button.dataset.w) button.dataset.w = String(button.getBoundingClientRect().width);
+        button.style.width = `${button.dataset.w}px`;
+        void button.offsetWidth;
+        button.dataset.state = state;
+        button.style.width = `${button.getBoundingClientRect().height}px`;
+      };
+      const unmorph = (button) => {
+        const width = button.dataset.w;
+        button.dataset.state = '';
+        if (!width) {
+          button.style.width = '';
+          return;
+        }
+        button.style.width = `${width}px`;
+        let timer = 0;
+        const finish = () => {
+          clearTimeout(timer);
+          button.removeEventListener('transitionend', onEnd);
+          button.style.width = '';
+          delete button.dataset.w;
+        };
+        const onEnd = (event) => {
+          if (event.propertyName === 'width') finish();
+        };
+        button.addEventListener('transitionend', onEnd);
+        timer = setTimeout(finish, 450);
+      };
+
       async function submit(form, url, statusEl) {
         const button = form.querySelector('button[type="submit"]');
         const field = form.querySelector('.nrow .field');
@@ -252,8 +287,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
         // Freeze the textbox width so the button shrinking to a dot can't stretch
         // it, and lock the button's own width so the morph can animate.
         if (field) field.style.flex = `0 0 ${field.getBoundingClientRect().width}px`;
-        button.style.width = `${button.getBoundingClientRect().width}px`;
-        button.dataset.state = 'loading';
+        morph(button, 'loading');
         button.disabled = true;
         statusEl.textContent = '';
 
@@ -275,8 +309,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
           if (body.error === 'not_configured') throw new Error('This form is not set up yet.');
           throw new Error(body.error || 'Something went wrong — try again?');
         } catch (error) {
-          button.dataset.state = '';
-          button.style.width = '';
+          unmorph(button);
           button.disabled = false;
           if (field) field.style.flex = '';
           statusEl.textContent = error.message;
@@ -296,8 +329,9 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAA
         form.addEventListener('input', () => {
           const button = form.querySelector('button[type="submit"]');
           if (button && button.dataset.state === 'done') {
-            button.dataset.state = '';
-            button.style.width = '';
+            unmorph(button);
+            const field = form.querySelector('.nrow .field');
+            if (field) field.style.flex = '';
             statusEl.textContent = '';
           }
         });

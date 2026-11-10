@@ -13,6 +13,8 @@ import A11 from './12-twinkle.astro';
 import A12 from './13-radar.astro';
 import A13 from './14-crumble.astro';
 import A14 from './15-sand.astro';
+import A15 from './16-slots.astro';
+import A16 from './17-magnet.astro';
 
 export interface Animation {
   id: string;
@@ -37,4 +39,6 @@ export const animations: Animation[] = [
   { id: 'rdr', name: "Radar", Component: A12 },
   { id: 'crm', name: "Crumble", Component: A13 },
   { id: 'snd', name: "Sand", Component: A14 },
+  { id: 'slt', name: "Slots", Component: A15 },
+  { id: 'mgs', name: "Magnet", Component: A16 },
 ];

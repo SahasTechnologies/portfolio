@@ -55,6 +55,10 @@ export function limiter(max: number, windowMs = 60 * 60 * 1000) {
   const hits = new Map<string, number[]>();
   return (key: string) => {
     const now = Date.now();
+    // Drop addresses that have gone quiet so the map can't grow without bound.
+    if (hits.size > 500) {
+      for (const [k, times] of hits) if (!times.some((t) => now - t < windowMs)) hits.delete(k);
+    }
     const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
     recent.push(now);
     hits.set(key, recent);

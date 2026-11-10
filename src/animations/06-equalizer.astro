@@ -9,7 +9,7 @@
 .play .eqn{animation:show .01s calc(var(--dl) + 1.77s) both}
 .play .eq.pop{animation:eqpop .6s steps(7) both}
 .play .eq.pop2{animation:eqpop2 .6s steps(7) both}
-.equ{touch-action:none}
+.equ{touch-action:pan-y}
 @media (prefers-reduced-motion:reduce){.eq{transform:scaleY(0)!important}}
 @keyframes eqb{0%{transform:scaleY(.1)}8%{transform:scaleY(.9)}18%{transform:scaleY(.35)}30%{transform:scaleY(1)}42%{transform:scaleY(.5)}54%{transform:scaleY(.9)}66%{transform:scaleY(1)}74%{transform:scaleY(var(--tg))}80%{transform:scaleY(var(--tg))}100%{transform:scaleY(0)}}
 @keyframes show{from{opacity:0}to{opacity:1}}
