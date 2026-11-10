@@ -6,7 +6,7 @@ different pixel animation in place of "Sahas".
 ```
 src/animations/     one file per pixel animation (SVG + its own CSS), extracted from
                     the "Sahas — animation studies" export
-src/scripts/        pointer interactions for those animations
+src/scripts/        pointer interactions for those animations (the same code the studies page runs)
 src/pages/index.astro   picks an animation on the server for each request
 deploy/             systemd unit + release script used by the deploy workflow
 ```

@@ -8,7 +8,7 @@
 .play .fp{animation:flipx 1.1s var(--dl) both}
 .play .fp.f1{animation:flipo .4s both}
 .play .fp.f2{animation:flipo2 .4s both}
-.flip{touch-action:none}
+.flip{touch-action:pan-y}
 @keyframes flipx{0%{transform:scaleY(0);fill:#f87171}20%{transform:scaleY(1)}30%{transform:scaleY(.05);fill:#facc15}50%{transform:scaleY(1)}60%{transform:scaleY(.05);fill:#60a5fa}80%{transform:scaleY(1)}100%{transform:scaleY(1);fill:var(--f)}}
 @keyframes flipo{0%{transform:scaleY(1);fill:var(--from)}48%{transform:scaleY(.04);fill:var(--from)}52%{transform:scaleY(.04);fill:var(--f)}100%{transform:scaleY(1);fill:var(--f)}}
 @keyframes flipo2{0%{transform:scaleY(1);fill:var(--from)}48%{transform:scaleY(.04);fill:var(--from)}52%{transform:scaleY(.04);fill:var(--f)}100%{transform:scaleY(1);fill:var(--f)}}
