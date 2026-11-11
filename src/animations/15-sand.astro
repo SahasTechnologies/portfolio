@@ -4,7 +4,7 @@
 // The play class starts the entrance animation; src/scripts/animations.js runs the interactivity.
 ---
 <style is:global>
-.snd{overflow:hidden;touch-action:pan-y}
+.snd{touch-action:pan-y}
 .play .sg{animation:sandfall calc(var(--du) + .12s) var(--dl) backwards}
 @keyframes sandfall{0%{transform:translateY(calc(var(--h)*-1px));opacity:0;animation-timing-function:cubic-bezier(.5,0,1,.7)}4%{opacity:1}84%{transform:none;animation-timing-function:ease-out}92%{transform:translateY(-.16px);animation-timing-function:ease-in}100%{transform:none}}
 </style>

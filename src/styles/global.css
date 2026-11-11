@@ -101,19 +101,14 @@ a {
   --f: #f5f5f5;
 }
 
+/* Left unclipped on purpose: the studies throw, scatter and crumble their pieces
+   well outside the SVG's own box (sand is thrown across the whole page). */
 .anim svg {
   display: block;
   width: 100%;
   height: auto;
-}
-
-/* Zero specificity, so a study that wants its SVG clipped (.snd, .pcm, .mrq, .tet)
-   can say so; `.anim svg` used to outrank those rules and let pieces spill over
-   the heading. */
-:where(.anim svg) {
   overflow: visible;
 }
-
 
 /* -------------------------------------------------------------- content ---- */
 .content {

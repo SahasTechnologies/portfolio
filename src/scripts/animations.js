@@ -536,6 +536,23 @@
         });
         return best;
       }
+      var DOTS = [].slice.call(pcm.querySelectorAll('.pmd')),
+        BLK = [].slice.call(pcm.querySelectorAll('.pmn')),
+        reduceM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      DOTS.forEach(function (d) {
+        d.dataset.i = Math.round(parseFloat(d.style.getPropertyValue('--dl')) / 0.055);
+      });
+      BLK.forEach(function (b) {
+        b.dataset.i = Math.round(parseFloat(b.style.getPropertyValue('--dl')) / 0.055) - 1;
+      });
+      function reveal(i) {
+        DOTS.forEach(function (d) {
+          d.style.opacity = +d.dataset.i <= i ? 0 : '';
+        });
+        BLK.forEach(function (b) {
+          b.style.opacity = +b.dataset.i + 1 <= i ? 1 : 0;
+        });
+      }
       function introStart() {
         cancelAnimationFrame(P.raf);
         clearInterval(P.iv);
@@ -546,6 +563,18 @@
         pgi.classList.remove('born', 'dead');
         pac.classList.remove('rest');
         pcm.classList.remove('hunt');
+        reveal(-1);
+        if (reduceM) {
+          var e = PATH[PATH.length - 1];
+          P.x = e[0];
+          P.y = e[1];
+          pset(0, 0);
+          reveal(PATH.length);
+          P.intro = true;
+          if (P.inside) pcm.classList.add('hunt');
+          else toEdge();
+          return;
+        }
         var t0 = performance.now(),
           last = -1;
         P.x = PATH[0][0];
@@ -563,6 +592,7 @@
             var dx = b[0] - a[0],
               dy = b[1] - a[1];
             pset(dx || dy ? pdir(dx, dy) : P.ang, 55);
+            reveal(i);
           }
           if (i < PATH.length - 1) P.raf = requestAnimationFrame(f);
           else {
