@@ -414,7 +414,8 @@
       pcm.dataset.grey.split(';').forEach(function (s) {
         WALK[s] = 1;
       });
-      function bfs(sx, sy, goal) {
+      var PADS = { '-1,6': 1, '28,6': 1, '29,6': 1 };
+      function bfs(sx, sy, goal, pads) {
         var key = function (x, y) {
             return x + ',' + y;
           },
@@ -437,7 +438,7 @@
             var nx = c[0] + d[0],
               ny = c[1] + d[1],
               k = key(nx, ny);
-            if (WALK[k] && !(k in prev)) {
+            if (WALK[k] && (pads || !PADS[k]) && !(k in prev)) {
               prev[k] = c;
               q.push([nx, ny]);
             }
@@ -472,9 +473,14 @@
       function toEdge() {
         clearInterval(P.iv);
         if (P.ghost && !P.dying) return;
-        var path = bfs(P.x, P.y, function (x, y) {
-          return y === 6 && (x === -1 || x === 29);
-        });
+        var path = bfs(
+          P.x,
+          P.y,
+          function (x, y) {
+            return y === 6 && (x === -1 || x === 29);
+          },
+          true,
+        );
         if (!path || !path.length) {
           pac.classList.add('rest');
           return;
@@ -501,9 +507,14 @@
         }, 950);
       }
       function chase() {
-        var path = bfs(P.x, P.y, function (x, y) {
-          return x === P.gx && y === P.gy;
-        });
+        var path = bfs(
+          P.x,
+          P.y,
+          function (x, y) {
+            return x === P.gx && y === P.gy;
+          },
+          !!PADS[P.x + ',' + P.y],
+        );
         if (!path) {
           return;
         }
